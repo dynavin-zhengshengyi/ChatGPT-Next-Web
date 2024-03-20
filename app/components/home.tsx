@@ -162,8 +162,11 @@ function Screen() {
               <Route path={Path.Settings} element={<Settings />} />
             </Routes>
           </div>
-
-          <Instruction className={isHome ? styles["sidebar-show"] : ""} />
+          {
+            (!isMobileScreen && !config.hideInstruction) ? (
+              <Instruction />
+            ) : null
+          }
         </>
       )}
     </div>

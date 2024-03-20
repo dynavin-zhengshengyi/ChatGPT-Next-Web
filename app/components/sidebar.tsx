@@ -6,6 +6,8 @@ import { IconButton } from "./button";
 import SettingsIcon from "../icons/settings.svg";
 import GithubIcon from "../icons/github.svg";
 import ChatGptIcon from "../icons/chatgpt.svg";
+import HiddenIcon from "../icons/close.svg";
+import ShowIcon from "../icons/add.svg";
 import AddIcon from "../icons/add.svg";
 import CloseIcon from "../icons/close.svg";
 import DeleteIcon from "../icons/delete.svg";
@@ -128,6 +130,33 @@ function useDragSideBar() {
   };
 }
 
+function useShowInstruction() {
+  const isMobileScreen = useMobileScreen();
+  const config = useAppConfig();
+
+  const toggleInstructionBar = () => {
+    config.update((config) => {
+      config.hideInstruction = !config.hideInstruction;
+      
+      const barWidth = config.hideInstruction ? 0 : 600;
+      const instructionBarWidth = `${barWidth}px`;
+      document.documentElement.style.setProperty("--instruction-width", instructionBarWidth);
+      
+    });
+  };
+
+  useEffect(() => {
+    if(config.hideInstruction) {
+      document.documentElement.style.setProperty("--instruction-width", config.hideInstruction ? '0px' : '600px');
+    }
+    
+  }, [config.sidebarWidth]);
+
+  return {
+    toggleInstructionBar,
+  };
+}
+
 export function SideBar(props: { className?: string }) {
   const chatStore = useChatStore();
 
@@ -142,6 +171,7 @@ export function SideBar(props: { className?: string }) {
   );
 
   useHotKey();
+  const {toggleInstructionBar} = useShowInstruction();
 
   return (
     <div
@@ -220,6 +250,16 @@ export function SideBar(props: { className?: string }) {
             <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
               <IconButton icon={<GithubIcon />} shadow />
             </a>
+          </div>
+          <div className={styles["sidebar-action"]}>
+          <IconButton 
+            icon={config.hideInstruction ? <ShowIcon /> : <HiddenIcon />}
+            //icon={<Robot />}
+            onClick={() => {
+              toggleInstructionBar();
+            }}
+            shadow
+          />
           </div>
         </div>
         <div>
