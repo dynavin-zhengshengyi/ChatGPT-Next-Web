@@ -32,7 +32,7 @@ export function Instruction(props: { className?: string }) {
       }}
     >
       <iframe
-        src="https://robot.dynavin.com/instruction"
+        src="https://robot.dynavin.com/instruction?embed=true"
         style={{ width: "100%", height: 2000 }}
       ></iframe>
     </div>
