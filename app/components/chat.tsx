@@ -37,6 +37,8 @@ import AutoIcon from "../icons/auto.svg";
 import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
 import RobotIcon from "../icons/robot.svg";
+import SizeIcon from "../icons/size.svg";
+import PluginIcon from "../icons/plugin.svg";
 
 import {
   ChatMessage,
@@ -59,13 +61,15 @@ import {
   getMessageTextContent,
   getMessageImages,
   isVisionModel,
+  isDalle3,
 } from "../utils";
 
-import { compressImage } from "@/app/utils/chat";
+import { uploadImage as uploadImageRemote } from "@/app/utils/chat";
 
 import dynamic from "next/dynamic";
 
 import { ChatControllerPool } from "../client/controller";
+import { DalleSize } from "../typing";
 import { Prompt, usePromptStore } from "../store/prompt";
 import Locale from "../locales";
 
@@ -88,6 +92,8 @@ import {
   Path,
   REQUEST_TIMEOUT_MS,
   UNFINISHED_INPUT,
+  ServiceProvider,
+  Plugin,
 } from "../constant";
 import { Avatar } from "./emoji";
 import { ContextPrompts, MaskAvatar, MaskConfig } from "./mask";
@@ -244,11 +250,11 @@ function useSubmitHandler() {
   };
 }
 
-export type RenderPompt = Pick<Prompt, "title" | "content">;
+export type RenderPrompt = Pick<Prompt, "title" | "content">;
 
 export function PromptHints(props: {
-  prompts: RenderPompt[];
-  onPromptSelect: (prompt: RenderPompt) => void;
+  prompts: RenderPrompt[];
+  onPromptSelect: (prompt: RenderPrompt) => void;
 }) {
   const noPrompts = props.prompts.length === 0;
   const [selectIndex, setSelectIndex] = useState(0);
@@ -337,7 +343,7 @@ function ClearContextDivider() {
   );
 }
 
-function ChatAction(props: {
+export function ChatAction(props: {
   text: string;
   icon: JSX.Element;
   onClick: () => void;
@@ -448,6 +454,9 @@ export function ChatActions(props: {
 
   // switch model
   const currentModel = chatStore.currentSession().mask.modelConfig.model;
+  const currentProviderName =
+    chatStore.currentSession().mask.modelConfig?.providerName ||
+    ServiceProvider.OpenAI;
   const allModels = useAllModels();
   const models = useMemo(() => {
     const filteredModels = allModels.filter((m) => m.available);
@@ -463,8 +472,22 @@ export function ChatActions(props: {
       return filteredModels;
     }
   }, [allModels]);
+  const currentModelName = useMemo(() => {
+    const model = models.find(
+      (m) =>
+        m.name == currentModel &&
+        m?.provider?.providerName == currentProviderName,
+    );
+    return model?.displayName ?? "";
+  }, [models, currentModel, currentProviderName]);
   const [showModelSelector, setShowModelSelector] = useState(false);
+  const [showPluginSelector, setShowPluginSelector] = useState(false);
   const [showUploadImage, setShowUploadImage] = useState(false);
+
+  const [showSizeSelector, setShowSizeSelector] = useState(false);
+  const dalle3Sizes: DalleSize[] = ["1024x1024", "1792x1024", "1024x1792"];
+  const currentSize =
+    chatStore.currentSession().mask.modelConfig?.size ?? "1024x1024";
 
   useEffect(() => {
     const show = isVisionModel(currentModel);
@@ -479,13 +502,17 @@ export function ChatActions(props: {
     const isUnavaliableModel = !models.some((m) => m.name === currentModel);
     if (isUnavaliableModel && models.length > 0) {
       // show next model to default model if exist
-      let nextModel: ModelType = (
-        models.find((model) => model.isDefault) || models[0]
-      ).name;
-      chatStore.updateCurrentSession(
-        (session) => (session.mask.modelConfig.model = nextModel),
+      let nextModel = models.find((model) => model.isDefault) || models[0];
+      chatStore.updateCurrentSession((session) => {
+        session.mask.modelConfig.model = nextModel.name;
+        session.mask.modelConfig.providerName = nextModel?.provider
+          ?.providerName as ServiceProvider;
+      });
+      showToast(
+        nextModel?.provider?.providerName == "ByteDance"
+          ? nextModel.displayName
+          : nextModel.name,
       );
-      showToast(nextModel);
     }
   }, [chatStore, currentModel, models]);
 
@@ -567,25 +594,95 @@ export function ChatActions(props: {
 
       <ChatAction
         onClick={() => setShowModelSelector(true)}
-        text={currentModel}
+        text={currentModelName}
         icon={<RobotIcon />}
       />
 
       {showModelSelector && (
         <Selector
-          defaultSelectedValue={currentModel}
+          defaultSelectedValue={`${currentModel}@${currentProviderName}`}
           items={models.map((m) => ({
-            title: m.displayName,
-            value: m.name,
+            title: `${m.displayName}${
+              m?.provider?.providerName
+                ? "(" + m?.provider?.providerName + ")"
+                : ""
+            }`,
+            value: `${m.name}@${m?.provider?.providerName}`,
           }))}
           onClose={() => setShowModelSelector(false)}
           onSelection={(s) => {
             if (s.length === 0) return;
+            const [model, providerName] = s[0].split("@");
             chatStore.updateCurrentSession((session) => {
-              session.mask.modelConfig.model = s[0] as ModelType;
+              session.mask.modelConfig.model = model as ModelType;
+              session.mask.modelConfig.providerName =
+                providerName as ServiceProvider;
               session.mask.syncGlobalConfig = false;
             });
-            showToast(s[0]);
+            if (providerName == "ByteDance") {
+              const selectedModel = models.find(
+                (m) =>
+                  m.name == model && m?.provider?.providerName == providerName,
+              );
+              showToast(selectedModel?.displayName ?? "");
+            } else {
+              showToast(model);
+            }
+          }}
+        />
+      )}
+
+      {isDalle3(currentModel) && (
+        <ChatAction
+          onClick={() => setShowSizeSelector(true)}
+          text={currentSize}
+          icon={<SizeIcon />}
+        />
+      )}
+
+      {showSizeSelector && (
+        <Selector
+          defaultSelectedValue={currentSize}
+          items={dalle3Sizes.map((m) => ({
+            title: m,
+            value: m,
+          }))}
+          onClose={() => setShowSizeSelector(false)}
+          onSelection={(s) => {
+            if (s.length === 0) return;
+            const size = s[0];
+            chatStore.updateCurrentSession((session) => {
+              session.mask.modelConfig.size = size;
+            });
+            showToast(size);
+          }}
+        />
+      )}
+
+      <ChatAction
+        onClick={() => setShowPluginSelector(true)}
+        text={Locale.Plugin.Name}
+        icon={<PluginIcon />}
+      />
+      {showPluginSelector && (
+        <Selector
+          multiple
+          defaultSelectedValue={chatStore.currentSession().mask?.plugin}
+          items={[
+            {
+              title: Locale.Plugin.Artifacts,
+              value: Plugin.Artifacts,
+            },
+          ]}
+          onClose={() => setShowPluginSelector(false)}
+          onSelection={(s) => {
+            const plugin = s[0];
+            chatStore.updateCurrentSession((session) => {
+              session.mask.plugin = s;
+            });
+            if (plugin) {
+              showToast(plugin);
+            }
           }}
         />
       )}
@@ -670,6 +767,7 @@ function _Chat() {
   const session = chatStore.currentSession();
   const config = useAppConfig();
   const fontSize = config.fontSize;
+  const fontFamily = config.fontFamily;
 
   const [showExport, setShowExport] = useState(false);
 
@@ -696,7 +794,7 @@ function _Chat() {
 
   // prompt hints
   const promptStore = usePromptStore();
-  const [promptHints, setPromptHints] = useState<RenderPompt[]>([]);
+  const [promptHints, setPromptHints] = useState<RenderPrompt[]>([]);
   const onSearch = useDebouncedCallback(
     (text: string) => {
       const matchedPrompts = promptStore.search(text);
@@ -749,7 +847,7 @@ function _Chat() {
     // clear search results
     if (n === 0) {
       setPromptHints([]);
-    } else if (text.startsWith(ChatCommandPrefix)) {
+    } else if (text.match(ChatCommandPrefix)) {
       setPromptHints(chatCommands.search(text));
     } else if (!config.disablePromptHint && n < SEARCH_TEXT_LIMIT) {
       // check if need to trigger auto completion
@@ -781,7 +879,7 @@ function _Chat() {
     setAutoScroll(true);
   };
 
-  const onPromptSelect = (prompt: RenderPompt) => {
+  const onPromptSelect = (prompt: RenderPrompt) => {
     setTimeout(() => {
       setPromptHints([]);
 
@@ -1136,7 +1234,7 @@ function _Chat() {
               ...(await new Promise<string[]>((res, rej) => {
                 setUploading(true);
                 const imagesData: string[] = [];
-                compressImage(file, 256 * 1024)
+                uploadImageRemote(file)
                   .then((dataUrl) => {
                     imagesData.push(dataUrl);
                     setUploading(false);
@@ -1178,7 +1276,7 @@ function _Chat() {
           const imagesData: string[] = [];
           for (let i = 0; i < files.length; i++) {
             const file = event.target.files[i];
-            compressImage(file, 256 * 1024)
+            uploadImageRemote(file)
               .then((dataUrl) => {
                 imagesData.push(dataUrl);
                 if (
@@ -1239,6 +1337,8 @@ function _Chat() {
               <IconButton
                 icon={<RenameIcon />}
                 bordered
+                title={Locale.Chat.EditMessage.Title}
+                aria={Locale.Chat.EditMessage.Title}
                 onClick={() => setIsEditingMessage(true)}
               />
             </div>
@@ -1258,6 +1358,8 @@ function _Chat() {
               <IconButton
                 icon={config.tightBorder ? <MinIcon /> : <MaxIcon />}
                 bordered
+                title={Locale.Chat.Actions.FullScreen}
+                aria={Locale.Chat.Actions.FullScreen}
                 onClick={() => {
                   config.update(
                     (config) => (config.tightBorder = !config.tightBorder),
@@ -1309,6 +1411,7 @@ function _Chat() {
                       <div className={styles["chat-message-edit"]}>
                         <IconButton
                           icon={<EditIcon />}
+                          aria={Locale.Chat.Actions.Edit}
                           onClick={async () => {
                             const newMessage = await showPrompt(
                               Locale.Chat.Actions.Edit,
@@ -1408,6 +1511,7 @@ function _Chat() {
                   )}
                   <div className={styles["chat-message-item"]}>
                     <Markdown
+                      key={message.streaming ? "loading" : "done"}
                       content={getMessageTextContent(message)}
                       loading={
                         (message.preview || message.streaming) &&
@@ -1420,6 +1524,7 @@ function _Chat() {
                         setUserInput(getMessageTextContent(message));
                       }}
                       fontSize={fontSize}
+                      fontFamily={fontFamily}
                       parentRef={scrollRef}
                       defaultShow={i >= messages.length - 6}
                     />
@@ -1514,6 +1619,7 @@ function _Chat() {
             autoFocus={autoFocus}
             style={{
               fontSize: config.fontSize,
+              fontFamily: config.fontFamily,
             }}
           />
           {attachImages.length != 0 && (
