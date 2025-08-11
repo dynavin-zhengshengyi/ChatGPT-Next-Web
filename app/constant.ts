@@ -25,7 +25,7 @@ export const ALIBABA_BASE_URL = "https://dashscope.aliyuncs.com/api/";
 
 export const TENCENT_BASE_URL = "https://hunyuan.tencentcloudapi.com";
 
-export const MOONSHOT_BASE_URL = "https://api.moonshot.cn";
+export const MOONSHOT_BASE_URL = "https://api.moonshot.ai";
 export const IFLYTEK_BASE_URL = "https://spark-api-open.xf-yun.com";
 
 export const DEEPSEEK_BASE_URL = "https://api.deepseek.com";
@@ -493,6 +493,7 @@ export const VISION_MODEL_REGEXES = [
   /o3/,
   /o4-mini/,
   /grok-4/i,
+  /gpt-5/
 ];
 
 export const EXCLUDE_VISION_MODEL_REGEXES = [/claude-3-5-haiku-20241022/];
@@ -517,6 +518,11 @@ const openaiModels = [
   "gpt-4.1-nano-2025-04-14",
   "gpt-4.5-preview",
   "gpt-4.5-preview-2025-02-27",
+  "gpt-5-chat",
+  "gpt-5-mini",
+  "gpt-5-nano",
+  "gpt-5",
+  "gpt-5-chat-2025-01-01-preview",
   "gpt-4o",
   "gpt-4o-2024-05-13",
   "gpt-4o-2024-08-06",
@@ -623,7 +629,18 @@ const tencentModels = [
   "hunyuan-vision",
 ];
 
-const moonshotModes = ["moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"];
+const moonshotModels = [
+  "moonshot-v1-auto",
+  "moonshot-v1-8k",
+  "moonshot-v1-32k",
+  "moonshot-v1-128k",
+  "moonshot-v1-8k-vision-preview",
+  "moonshot-v1-32k-vision-preview",
+  "moonshot-v1-128k-vision-preview",
+  "kimi-thinking-preview",
+  "kimi-k2-0711-preview",
+  "kimi-latest",
+];
 
 const iflytekModels = [
   "general",
@@ -732,161 +749,161 @@ export const DEFAULT_MODELS = [
       providerType: "openai",
       sorted: 1, // 这里是固定的，确保顺序与之前内置的版本一致
     },
+  })),/*
+  ...openaiModels.map((name) => ({
+    name,
+    available: true,
+    sorted: seq++,
+    provider: {
+      id: "azure",
+      providerName: "Azure",
+      providerType: "azure",
+      sorted: 2,
+    },
   })),
-  // ...openaiModels.map((name) => ({
-  //   name,
-  //   available: true,
-  //   sorted: seq++,
-  //   provider: {
-  //     id: "azure",
-  //     providerName: "Azure",
-  //     providerType: "azure",
-  //     sorted: 2,
-  //   },
-  // })),
-  // ...googleModels.map((name) => ({
-  //   name,
-  //   available: true,
-  //   sorted: seq++,
-  //   provider: {
-  //     id: "google",
-  //     providerName: "Google",
-  //     providerType: "google",
-  //     sorted: 3,
-  //   },
-  // })),
-  // ...anthropicModels.map((name) => ({
-  //   name,
-  //   available: true,
-  //   sorted: seq++,
-  //   provider: {
-  //     id: "anthropic",
-  //     providerName: "Anthropic",
-  //     providerType: "anthropic",
-  //     sorted: 4,
-  //   },
-  // })),
-  // ...baiduModels.map((name) => ({
-  //   name,
-  //   available: true,
-  //   sorted: seq++,
-  //   provider: {
-  //     id: "baidu",
-  //     providerName: "Baidu",
-  //     providerType: "baidu",
-  //     sorted: 5,
-  //   },
-  // })),
-  // ...bytedanceModels.map((name) => ({
-  //   name,
-  //   available: true,
-  //   sorted: seq++,
-  //   provider: {
-  //     id: "bytedance",
-  //     providerName: "ByteDance",
-  //     providerType: "bytedance",
-  //     sorted: 6,
-  //   },
-  // })),
-  // ...alibabaModes.map((name) => ({
-  //   name,
-  //   available: true,
-  //   sorted: seq++,
-  //   provider: {
-  //     id: "alibaba",
-  //     providerName: "Alibaba",
-  //     providerType: "alibaba",
-  //     sorted: 7,
-  //   },
-  // })),
-  // ...tencentModels.map((name) => ({
-  //   name,
-  //   available: true,
-  //   sorted: seq++,
-  //   provider: {
-  //     id: "tencent",
-  //     providerName: "Tencent",
-  //     providerType: "tencent",
-  //     sorted: 8,
-  //   },
-  // })),
-  // ...moonshotModes.map((name) => ({
-  //   name,
-  //   available: true,
-  //   sorted: seq++,
-  //   provider: {
-  //     id: "moonshot",
-  //     providerName: "Moonshot",
-  //     providerType: "moonshot",
-  //     sorted: 9,
-  //   },
-  // })),
-  // ...iflytekModels.map((name) => ({
-  //   name,
-  //   available: true,
-  //   sorted: seq++,
-  //   provider: {
-  //     id: "iflytek",
-  //     providerName: "Iflytek",
-  //     providerType: "iflytek",
-  //     sorted: 10,
-  //   },
-  // })),
-  // ...xAIModes.map((name) => ({
-  //   name,
-  //   available: true,
-  //   sorted: seq++,
-  //   provider: {
-  //     id: "xai",
-  //     providerName: "XAI",
-  //     providerType: "xai",
-  //     sorted: 11,
-  //   },
-  // })),
-  // ...chatglmModels.map((name) => ({
-  //   name,
-  //   available: true,
-  //   sorted: seq++,
-  //   provider: {
-  //     id: "chatglm",
-  //     providerName: "ChatGLM",
-  //     providerType: "chatglm",
-  //     sorted: 12,
-  //   },
-  // })),
-  // ...deepseekModels.map((name) => ({
-  //   name,
-  //   available: true,
-  //   sorted: seq++,
-  //   provider: {
-  //     id: "deepseek",
-  //     providerName: "DeepSeek",
-  //     providerType: "deepseek",
-  //     sorted: 13,
-  //   },
-  // })),
-  // ...siliconflowModels.map((name) => ({
-  //   name,
-  //   available: true,
-  //   sorted: seq++,
-  //   provider: {
-  //     id: "siliconflow",
-  //     providerName: "SiliconFlow",
-  //     providerType: "siliconflow",
-  //     sorted: 14,
-  //   },
-  // })),
-  // ...ai302Models.map((name) => ({
-  //   name,
-  //   available: true,
-  //   sorted: seq++,
-  //   provider: {
-  //     id: "ai302",
-  //     providerName: "302.AI",
-  //     providerType: "ai302",
-  //     sorted: 15,
-  //   },
-  // })),
+  ...googleModels.map((name) => ({
+    name,
+    available: true,
+    sorted: seq++,
+    provider: {
+      id: "google",
+      providerName: "Google",
+      providerType: "google",
+      sorted: 3,
+    },
+  })),
+  ...anthropicModels.map((name) => ({
+    name,
+    available: true,
+    sorted: seq++,
+    provider: {
+      id: "anthropic",
+      providerName: "Anthropic",
+      providerType: "anthropic",
+      sorted: 4,
+    },
+  })),
+  ...baiduModels.map((name) => ({
+    name,
+    available: true,
+    sorted: seq++,
+    provider: {
+      id: "baidu",
+      providerName: "Baidu",
+      providerType: "baidu",
+      sorted: 5,
+    },
+  })),
+  ...bytedanceModels.map((name) => ({
+    name,
+    available: true,
+    sorted: seq++,
+    provider: {
+      id: "bytedance",
+      providerName: "ByteDance",
+      providerType: "bytedance",
+      sorted: 6,
+    },
+  })),
+  ...alibabaModes.map((name) => ({
+    name,
+    available: true,
+    sorted: seq++,
+    provider: {
+      id: "alibaba",
+      providerName: "Alibaba",
+      providerType: "alibaba",
+      sorted: 7,
+    },
+  })),
+  ...tencentModels.map((name) => ({
+    name,
+    available: true,
+    sorted: seq++,
+    provider: {
+      id: "tencent",
+      providerName: "Tencent",
+      providerType: "tencent",
+      sorted: 8,
+    },
+  })),
+  ...moonshotModels.map((name) => ({
+    name,
+    available: true,
+    sorted: seq++,
+    provider: {
+      id: "moonshot",
+      providerName: "Moonshot",
+      providerType: "moonshot",
+      sorted: 9,
+    },
+  })),
+  ...iflytekModels.map((name) => ({
+    name,
+    available: true,
+    sorted: seq++,
+    provider: {
+      id: "iflytek",
+      providerName: "Iflytek",
+      providerType: "iflytek",
+      sorted: 10,
+    },
+  })),
+  ...xAIModes.map((name) => ({
+    name,
+    available: true,
+    sorted: seq++,
+    provider: {
+      id: "xai",
+      providerName: "XAI",
+      providerType: "xai",
+      sorted: 11,
+    },
+  })),
+  ...chatglmModels.map((name) => ({
+    name,
+    available: true,
+    sorted: seq++,
+    provider: {
+      id: "chatglm",
+      providerName: "ChatGLM",
+      providerType: "chatglm",
+      sorted: 12,
+    },
+  })),
+  ...deepseekModels.map((name) => ({
+    name,
+    available: true,
+    sorted: seq++,
+    provider: {
+      id: "deepseek",
+      providerName: "DeepSeek",
+      providerType: "deepseek",
+      sorted: 13,
+    },
+  })),
+  ...siliconflowModels.map((name) => ({
+    name,
+    available: true,
+    sorted: seq++,
+    provider: {
+      id: "siliconflow",
+      providerName: "SiliconFlow",
+      providerType: "siliconflow",
+      sorted: 14,
+    },
+  })),
+  ...ai302Models.map((name) => ({
+    name,
+    available: true,
+    sorted: seq++,
+    provider: {
+      id: "ai302",
+      providerName: "302.AI",
+      providerType: "ai302",
+      sorted: 15,
+    },
+  })),*/
 ] as const;
 
 export const CHAT_PAGE_SIZE = 15;
